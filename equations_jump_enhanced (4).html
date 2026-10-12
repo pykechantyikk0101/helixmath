@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Equations Jump: Labyrinth Tower Enhanced</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Google Fonts for Teen/Gaming Vibe -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Load FontAwesome for Cool Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Load Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Load jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Load MathJax for Equations -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #030712; color: white; font-family: 'Nunito', sans-serif; touch-action: none; }
+        .font-display { font-family: 'Fredoka', sans-serif; }
+        #game-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        .ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
+        .interactive { pointer-events: auto; }
+        .hidden { display: none !important; }
+        
+        .MathJax { color: white !important; font-size: 1.05em !important; }
+
+        @keyframes pulseGlow {
+            0%, 100% { filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.6)); }
+            50% { filter: drop-shadow(0 0 30px rgba(59, 130, 246, 0.9)); }
+        }
+        .animate-glow { animation: pulseGlow 3s infinite ease-in-out; }
+        
+        @keyframes floatEffect {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+        .animate-float { animation: floatEffect 4s infinite ease-in-out; }
+
+        @keyframes modalPop {
+            0% { transform: scale(0.85); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop { animation: modalPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        
+        @keyframes damagePop {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            30% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            70% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            100% { transform: translate(-50%, -100%) scale(0.8); opacity: 0; }
+        }
+        .animate-damage { animation: damagePop 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        /* Custom 3D Button Press Effect */
+        .btn-3d { transition: all 0.1s; }
+        .btn-3d:active { transform: translateY(4px); border-bottom-width: 0px !important; margin-bottom: 4px; }
+    </style>
+</head>
+<body>
+
+    <!-- Layar Login -->
+    <div id="login-screen" class="absolute inset-0 bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950 z-50 flex flex-col items-center justify-center interactive p-4 overflow-y-auto">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.18)_0,transparent_75%)] pointer-events-none"></div>
+        
+        <div class="relative z-10 text-center mb-6 animate-float">
+            <span class="px-4 py-1.5 bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 font-bold text-xs rounded-full uppercase tracking-widest shadow-[0_0_20px_rgba(6,182,212,0.4)]"><i class="fa-solid fa-gamepad mr-1"></i> Game Edukasi Kelas X</span>
+            <h1 class="font-display text-5xl md:text-7xl font-bold text-white mt-3 mb-2 tracking-wide animate-glow">EQUATIONS <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-fuchsia-400">JUMP</span></h1>
+            <p class="text-indigo-200 text-sm md:text-base font-semibold max-w-md mx-auto">Taklukkan 4 Level Menara Persamaan Kuadrat!</p>
+        </div>
+        
+        <div class="relative z-10 bg-gray-900/90 backdrop-blur-2xl p-8 rounded-3xl w-full max-w-md border border-indigo-500/30 shadow-[0_25px_60px_rgba(0,0,0,0.8)]">
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label class="block text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2"><i class="fa-solid fa-user-astronaut mr-1"></i> Identitas Siswa</label>
+                    <select id="player-name" class="w-full px-4 py-3.5 bg-gray-950/90 text-white font-semibold rounded-xl outline-none border-2 border-gray-800 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/30 transition text-sm cursor-pointer hover:border-gray-600">
+                        <option value="" disabled selected>-- Pilih Nama Siswa --</option>
+                        <option value="Achmad Naufal Dzaky Zahid">Achmad Naufal Dzaky Zahid</option>
+                        <option value="Aliyah Hafidzah Naurah Arsy">Aliyah Hafidzah Naurah Arsy</option>
+                        <option value="Ardiansyah Fahmi Wicaksana">Ardiansyah Fahmi Wicaksana</option>
+                        <option value="Azzam Krisna Zamputro">Azzam Krisna Zamputro</option>
+                        <option value="Danesh Fathan Ali Ibrahim">Danesh Fathan Ali Ibrahim</option>
+                        <option value="Denaro Novanda Yogaswara">Denaro Novanda Yogaswara</option>
+                        <option value="Dzakiy Abimanyu Bachtiar">Dzakiy Abimanyu Bachtiar</option>
+                        <option value="Feni Handista Ayu Farini">Feni Handista Ayu Farini</option>
+                        <option value="Griselda Savila H.">Griselda Savila H.</option>
+                        <option value="Idris Abdurrahman">Idris Abdurrahman</option>
+                        <option value="Ikmal Rifqi">Ikmal Rifqi</option>
+                        <option value="Kaidzar Bagas Pradipta">Kaidzar Bagas Pradipta</option>
+                        <option value="Mohammad Zidanil Izzat">Mohammad Zidanil Izzat</option>
+                        <option value="Muhammad Alif">Muhammad Alif</option>
+                        <option value="Muhammad Hisyam Wafi'i Putra">Muhammad Hisyam Wafi'i Putra</option>
+                        <option value="Nadhim Aufa Hamdhani">Nadhim Aufa Hamdhani</option>
+                        <option value="Narra Arhab P.">Narra Arhab P.</option>
+                        <option value="Naufal Ryodha Pasyaan">Naufal Ryodha Pasyaan</option>
+                        <option value="Naylatul Mutammimah">Naylatul Mutammimah</option>
+                        <option value="Noni Niken Chelzianti">Noni Niken Chelzianti</option>
+                        <option value="Surya Patrialis Dizgyanda">Surya Patrialis Dizgyanda</option>
+                        <option value="Waldan Kiraman Lamani">Waldan Kiraman Lamani</option>
+                        <option value="Zakiyyah Anwar Rahadatul Aisyi">Zakiyyah Anwar Rahadatul Aisyi</option>
+                        <option value="Zhafira Sakhi Azkya">Zhafira Sakhi Azkya</option>
+                        <option value="Zidny Elmann Nafiansyah">Zidny Elmann Nafiansyah</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mb-8">
+                <label class="block text-xs font-bold text-indigo-400 uppercase tracking-wider mb-3 text-center"><i class="fa-solid fa-palette mr-1"></i> Pilih Warna</label>
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="selectAvatar('male', this)" class="avatar-btn py-4 px-3 bg-gray-950/90 border-[3px] border-cyan-400 rounded-2xl flex flex-col items-center justify-center hover:bg-gray-800 transition shadow-lg group btn-3d border-b-[6px] border-b-cyan-600 active:border-b-cyan-400">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-red-400 to-red-600 mb-2 shadow-[0_0_15px_rgba(239,68,68,0.9)] transform group-hover:scale-110 transition"></div>
+                        <span class="text-sm font-display text-white font-bold tracking-wide">Bola Merah</span>
+                    </button>
+                    <button onclick="selectAvatar('female', this)" class="avatar-btn py-4 px-3 bg-gray-950/90 border-[3px] border-gray-800 rounded-2xl flex flex-col items-center justify-center hover:bg-gray-800 transition shadow-lg group btn-3d border-b-[6px] border-b-gray-900 active:border-b-gray-800">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-fuchsia-400 to-fuchsia-600 mb-2 shadow-[0_0_15px_rgba(217,70,239,0.9)] transform group-hover:scale-110 transition"></div>
+                        <span class="text-sm font-display text-white font-bold tracking-wide">Bola Magenta</span>
+                    </button>
+                </div>
+            </div>
+            
+            <button onclick="startGameFromLogin()" class="btn-3d w-full py-4 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white font-display font-bold rounded-2xl text-xl transition-all shadow-[0_0_30px_rgba(6,182,212,0.5)] border-b-[6px] border-indigo-800 hover:from-cyan-400 hover:to-indigo-500 tracking-wide uppercase"><i class="fa-solid fa-rocket mr-2"></i> Mulai Permainan</button>
+            
+            <p class="text-center text-indigo-300/70 text-sm font-bold mt-6 tracking-wide drop-shadow-md">Oleh: Vyke Triawilly Pradista, S.Pd.</p>
+        </div>
+    </div>
+
+    <!-- HUD Overlay Terpusat & Rapi (Perbaikan Stretch Bug) -->
+    <div id="hud" class="ui-layer hidden flex justify-center items-start p-2 sm:p-4">
+        <div class="pointer-events-auto bg-slate-900/90 backdrop-blur-xl border-[3px] border-indigo-500/50 rounded-2xl p-3 sm:p-4 flex flex-col gap-3 w-full max-w-2xl shadow-[0_10px_40px_rgba(0,0,0,0.6)] mt-2 md:mt-4">
+            <!-- Baris Atas: Identitas & Tombol -->
+            <div class="flex justify-between items-center w-full">
+                <div class="flex items-center gap-3">
+                    <div id="hud-avatar" class="w-10 h-10 rounded-full bg-red-500 shadow-[0_0_10px_rgba(255,255,255,0.3)] border-2 border-white/50"></div>
+                    <div class="flex flex-col">
+                        <span id="hud-name" class="font-bold text-white text-sm sm:text-base tracking-wide leading-tight">Nama</span>
+                        <span id="hud-level" class="font-display text-cyan-400 font-bold text-xs sm:text-sm tracking-widest uppercase mt-0.5">LEVEL 1</span>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="exportPDF()" class="interactive btn-3d px-3 py-2 sm:px-4 sm:py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold rounded-xl text-xs sm:text-sm transition shadow-lg border-b-[4px] border-blue-800 hover:from-cyan-500 hover:to-blue-500 flex items-center space-x-2">
+                        <i class="fa-solid fa-file-pdf"></i><span class="hidden sm:inline">Rekap PDF</span>
+                    </button>
+                    <button onclick="confirmReturnToLogin()" class="interactive btn-3d px-3 py-2 sm:px-4 sm:py-2.5 bg-gradient-to-r from-rose-600 to-red-600 text-white font-bold rounded-xl text-xs sm:text-sm transition shadow-lg border-b-[4px] border-red-800 hover:from-rose-500 hover:to-red-500 flex items-center space-x-2">
+                        <i class="fa-solid fa-right-from-bracket"></i><span class="hidden sm:inline">Keluar</span>
+                    </button>
+                </div>
+            </div>
+            <!-- Baris Bawah: Statistik Poin, Soal, Nyawa -->
+            <div class="flex justify-between items-center bg-slate-950/60 rounded-xl p-2 sm:p-3 border border-slate-700/50 shadow-inner">
+                <div id="hud-lives" class="flex items-center text-sm sm:text-base"></div>
+                <div class="text-indigo-300 font-bold text-xs sm:text-sm font-display tracking-wide text-center" id="hud-score">Skor: 0 | Total: 0</div>
+                <div class="text-emerald-400 font-black text-xs sm:text-sm bg-emerald-900/40 px-2.5 py-1 rounded-lg inline-block text-center border border-emerald-500/30" id="hud-progress">Soal: 1/7</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Text untuk Pengurangan Poin (Rintangan) -->
+    <div id="damage-text" class="fixed top-[40%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-rose-500 font-display font-black text-6xl drop-shadow-[0_0_20px_rgba(244,63,94,0.8)] hidden pointer-events-none z-[60] tracking-widest uppercase" style="text-shadow: 3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;">
+        -5 POIN!
+    </div>
+
+    <!-- 1. Quiz / Question Popup -->
+    <div id="quiz-ui" class="absolute inset-0 bg-slate-950/90 backdrop-blur-xl z-40 hidden flex-col items-center justify-center interactive p-4 transition-all">
+        <div class="animate-pop bg-gradient-to-b from-slate-900 via-gray-900 to-slate-950 p-6 md:p-8 rounded-3xl max-w-lg w-full border-[3px] border-cyan-400/80 shadow-[0_0_60px_rgba(6,182,212,0.45)] relative overflow-hidden">
+            <!-- Ambient Glow Effects inside -->
+            <div class="absolute -top-20 -left-20 w-40 h-40 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="absolute -top-4 -right-4 bg-gradient-to-r from-red-600 to-rose-600 border-[3px] border-white/40 px-5 py-2 rounded-full shadow-[0_0_20px_rgba(239,68,68,0.7)] flex items-center justify-center space-x-2 z-10">
+                <i class="fa-solid fa-heart text-red-100 text-sm fa-beat"></i>
+                <span id="quiz-lives-display" class="text-white font-display font-bold text-xl">3</span>
+            </div>
+
+            <div class="text-center mb-6 relative z-10 mt-3">
+                <span class="inline-block px-4 py-1.5 bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-xs font-black rounded-full mb-4 tracking-widest uppercase shadow-[0_0_15px_rgba(6,182,212,0.3)]"><i class="fa-solid fa-bolt text-yellow-400 mr-1"></i> Ujian Kompetensi Math</span>
+                <div class="bg-slate-950/80 backdrop-blur-md rounded-2xl p-6 min-h-[120px] flex items-center justify-center border-2 border-cyan-500/30 shadow-[inset_0_4px_15px_rgba(0,0,0,0.6)] relative">
+                    <p id="question-text" class="text-base md:text-lg font-bold text-white text-center leading-relaxed"></p>
+                </div>
+            </div>
+            
+            <div id="quiz-options" class="grid grid-cols-1 gap-3 relative z-10"></div>
+
+            <div id="wrong-actions" class="hidden flex-col items-center gap-4 mt-5 relative z-10">
+                <div class="flex items-center space-x-3 text-rose-400 font-display font-bold text-xl bg-rose-950/50 px-6 py-3 rounded-2xl border border-rose-500/30">
+                    <i class="fa-solid fa-circle-xmark fa-shake text-2xl"></i>
+                    <span>JAWABAN KURANG TEPAT</span>
+                </div>
+                <button onclick="retryQuestion()" class="btn-3d w-full py-4 bg-gradient-to-r from-red-600 via-rose-600 to-pink-600 text-white font-display font-bold rounded-xl text-lg transition shadow-[0_0_25px_rgba(239,68,68,0.5)] border-b-[5px] border-red-900 hover:from-red-500 hover:to-pink-500 uppercase tracking-wide"><i class="fa-solid fa-rotate-right mr-2"></i> Coba Lagi (-1 Nyawa)</button>
+                <button onclick="skipQuestion()" class="btn-3d w-full py-3.5 bg-slate-800 text-slate-300 font-bold rounded-xl text-sm transition border-2 border-slate-600 border-b-[4px] hover:bg-slate-700 hover:text-white"><i class="fa-solid fa-forward-step mr-2"></i> Lewati Soal (0 Poin)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Gift Box Popup -->
+    <div id="gift-modal" class="absolute inset-0 bg-black/90 backdrop-blur-xl z-[100] hidden flex-col items-center justify-center interactive p-4">
+        <div class="animate-pop bg-gradient-to-b from-gray-900 via-slate-900 to-gray-950 p-6 md:p-8 rounded-3xl border-[3px] border-amber-400 max-w-lg w-full text-center shadow-[0_0_80px_rgba(251,191,36,0.4)] relative overflow-hidden">
+            <div class="absolute -top-16 -left-16 w-32 h-32 bg-amber-500/30 rounded-full blur-2xl pointer-events-none"></div>
+            <div class="w-24 h-24 bg-gradient-to-tr from-amber-500/20 to-yellow-300/20 rounded-full flex items-center justify-center mx-auto mb-5 border-2 border-amber-400/70 shadow-[0_0_40px_rgba(251,191,36,0.5)]">
+                <i id="gift-icon" class="fa-solid fa-gift fa-bounce text-5xl text-amber-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.8)]"></i>
+            </div>
+            <h3 id="gift-header" class="font-display text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-200 mb-2 uppercase tracking-wide">KOTAK HADIAH TERBUKA!</h3>
+            <p id="gift-title" class="text-lg md:text-xl font-bold text-cyan-300 mb-5"></p>
+            
+            <div id="gift-content" class="bg-slate-950/90 p-5 rounded-2xl border-2 border-amber-500/30 mb-6 text-sm text-gray-200 text-left leading-relaxed max-h-60 overflow-y-auto shadow-[inset_0_2px_10px_rgba(0,0,0,0.8)]"></div>
+
+            <button onclick="closeGiftModal()" class="btn-3d w-full py-4 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-gray-950 font-display font-bold rounded-2xl transition shadow-[0_0_30px_rgba(251,191,36,0.6)] text-lg border-b-[5px] border-amber-600 hover:from-amber-300 hover:to-yellow-300 uppercase"><i class="fa-solid fa-hand-holding-heart mr-2"></i> Ambil Hadiah & Lanjut</button>
+        </div>
+    </div>
+
+    <!-- 3. Generic Warning / Notification Popup -->
+    <div id="msg-modal" class="absolute inset-0 bg-black/85 backdrop-blur-md z-[100] hidden flex-col items-center justify-center interactive p-4">
+        <div class="animate-pop bg-gradient-to-b from-gray-900 via-slate-900 to-slate-950 p-6 md:p-8 rounded-3xl border-[3px] border-rose-500 max-w-sm w-full text-center shadow-[0_0_60px_rgba(244,63,94,0.4)] relative overflow-hidden">
+            
+            <!-- Tombol X untuk Batal -->
+            <button id="msg-close-btn" onclick="cancelMsgModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 hidden bg-gray-800/50">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="w-16 h-16 bg-rose-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-rose-500/50 shadow-[0_0_30px_rgba(244,63,94,0.5)]">
+                <i class="fa-solid fa-triangle-exclamation fa-beat-fade text-3xl text-rose-400"></i>
+            </div>
+            <h3 id="msg-title" class="font-display text-2xl font-bold text-white mb-3 tracking-wide"></h3>
+            <p id="msg-body" class="text-gray-300 text-sm mb-7 whitespace-pre-line leading-relaxed font-semibold"></p>
+            
+            <div class="flex gap-3 w-full">
+                <!-- Tombol Batal -->
+                <button id="msg-cancel-btn" onclick="cancelMsgModal()" class="btn-3d hidden flex-1 py-3.5 bg-slate-800 text-white font-bold rounded-xl transition border-2 border-slate-600 border-b-[4px] hover:bg-slate-700 text-sm"><i class="fa-solid fa-ban mr-1"></i> Batal</button>
+                <!-- Tombol Konfirmasi -->
+                <button id="msg-confirm-btn" onclick="closeMsgModal()" class="btn-3d flex-1 py-3.5 bg-gradient-to-r from-rose-600 via-red-600 to-pink-600 text-white font-bold rounded-xl transition shadow-[0_0_20px_rgba(244,63,94,0.6)] border-b-[4px] border-red-900 hover:from-rose-500 hover:to-pink-500 text-sm"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Game Over Popup -->
+    <div id="game-over" class="absolute inset-0 bg-slate-950/95 backdrop-blur-2xl z-50 hidden flex-col items-center justify-center interactive p-4 text-center">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.25)_0,transparent_75%)] pointer-events-none"></div>
+        <div class="animate-pop relative z-10 max-w-md w-full bg-slate-900/90 border-[3px] border-red-500/80 rounded-3xl p-8 shadow-[0_0_80px_rgba(239,68,68,0.5)]">
+            <div class="w-24 h-24 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-5 border-2 border-red-500/50 shadow-[0_0_40px_rgba(239,68,68,0.6)]">
+                <i class="fa-solid fa-skull fa-shake text-5xl text-red-500 drop-shadow-lg"></i>
+            </div>
+            <h2 class="font-display text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-rose-400 to-pink-500 mb-3 drop-shadow-[0_0_20px_rgba(220,38,38,0.8)] tracking-wide uppercase">PERMAINAN USAI</h2>
+            <p id="go-reason" class="text-sm md:text-base text-gray-300 mb-8 font-bold leading-relaxed bg-black/40 p-4 rounded-xl border border-red-900/50"></p>
+            <button onclick="returnToLogin()" class="btn-3d w-full py-4 bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 text-white font-display font-bold rounded-2xl text-lg transition shadow-[0_0_30px_rgba(99,102,241,0.6)] border-b-[5px] border-indigo-900 hover:from-indigo-500 hover:to-cyan-500 uppercase"><i class="fa-solid fa-house mr-2"></i> Kembali ke Login</button>
+        </div>
+    </div>
+
+    <!-- 5. Level Recap / Summary Popup -->
+    <div id="level-recap" class="absolute inset-0 bg-slate-950/95 backdrop-blur-2xl z-50 hidden flex-col items-center justify-center interactive p-4 text-center">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(52,211,153,0.2)_0,transparent_75%)] pointer-events-none"></div>
+        <div class="animate-pop relative z-10 max-w-xl w-full">
+            <h2 id="recap-title" class="font-display text-4xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-400 mb-6 drop-shadow-[0_0_20px_rgba(52,211,153,0.6)] tracking-wide"><i class="fa-solid fa-trophy mr-3 text-yellow-400"></i>LEVEL SELESAI</h2>
+            
+            <div class="bg-slate-900/90 backdrop-blur-xl p-6 md:p-8 rounded-3xl border-[3px] border-emerald-500/50 text-center mb-8 shadow-[0_0_60px_rgba(16,185,129,0.3)] w-full relative overflow-hidden">
+                <div class="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl"></div>
+                <p class="text-gray-400 text-xs md:text-sm uppercase tracking-widest mb-1 font-bold">Jumlah Soal Benar</p>
+                <p class="font-display text-5xl md:text-7xl font-bold text-white mb-4"><span id="recap-correct" class="text-emerald-400 drop-shadow-md">0</span><span id="recap-total-questions" class="text-2xl md:text-3xl text-gray-600"> / 7</span></p>
+                <div class="inline-block px-5 py-2 bg-cyan-950/60 border-2 border-cyan-500/40 rounded-full mb-5 shadow-lg">
+                    <span class="text-cyan-300 font-bold text-sm md:text-base"><i class="fa-solid fa-star text-yellow-400 mr-1"></i> Skor Level Ini: <span id="recap-level-score" class="text-white font-display text-lg">0</span> / 100</span>
+                </div>
+                
+                <div class="w-full bg-slate-950 h-4 rounded-full mb-5 overflow-hidden p-0.5 border border-slate-700 shadow-[inset_0_2px_5px_rgba(0,0,0,0.8)]">
+                    <div id="recap-bar" class="bg-gradient-to-r from-cyan-500 via-emerald-400 to-teal-300 h-full w-0 rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(52,211,153,0.8)] relative overflow-hidden">
+                        <div class="absolute inset-0 bg-white/20 w-full animate-[pulse_2s_ease-in-out_infinite]"></div>
+                    </div>
+                </div>
+                <p class="text-lg md:text-xl text-gray-300 mb-1">Status: <span id="recap-status" class="font-display font-bold"></span></p>
+                <p id="recap-req-text" class="text-sm text-amber-300 font-bold">(Syarat lulus: Maksimal 2 soal salah)</p>
+                <div id="recap-final-congrats" class="hidden text-sm md:text-base text-cyan-100 bg-cyan-950/80 border-2 border-cyan-400/50 p-5 rounded-2xl mt-5 leading-relaxed font-semibold shadow-xl backdrop-blur-md"></div>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row gap-4 w-full justify-center">
+                <button id="btn-next-level" onclick="nextLevel()" class="btn-3d hidden flex-1 py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 text-white font-display font-bold rounded-2xl text-lg transition shadow-[0_0_25px_rgba(16,185,129,0.5)] border-b-[5px] border-teal-800 hover:from-emerald-400 hover:to-cyan-500 uppercase"><i class="fa-solid fa-forward mr-2"></i> Lanjut Level</button>
+                <button id="btn-retry-level" onclick="restartLevel()" class="btn-3d hidden flex-1 py-4 bg-gradient-to-r from-rose-500 via-red-500 to-pink-600 text-white font-display font-bold rounded-2xl text-lg transition shadow-[0_0_25px_rgba(244,63,94,0.5)] border-b-[5px] border-red-900 hover:from-rose-400 hover:to-pink-500 uppercase"><i class="fa-solid fa-arrow-rotate-right mr-2"></i> Ulangi Level Ini</button>
+                <button id="btn-download-pdf" onclick="exportPDF()" class="btn-3d hidden flex-1 py-4 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 text-white font-display font-bold rounded-2xl text-lg transition shadow-[0_0_25px_rgba(6,182,212,0.5)] border-b-[5px] border-blue-900 hover:from-cyan-500 hover:to-indigo-500 uppercase"><i class="fa-solid fa-download mr-2"></i> Unduh Rekap PDF</button>
+                <button id="btn-back-login" onclick="returnToLogin()" class="btn-3d hidden flex-1 py-4 bg-slate-800 text-white font-display font-bold rounded-2xl text-lg transition border-2 border-slate-600 border-b-[5px] hover:bg-slate-700 uppercase"><i class="fa-solid fa-house mr-2"></i> Menu Utama</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Gift Box Popup -->
+    <div id="gift-modal" class="absolute inset-0 bg-black/85 backdrop-blur-xl z-[100] hidden flex-col items-center justify-center interactive p-4">
+        <div class="animate-pop bg-gradient-to-b from-gray-900 via-slate-900 to-gray-950 p-6 md:p-8 rounded-3xl border-2 border-amber-400/90 max-w-lg w-full text-center shadow-[0_0_60px_rgba(251,191,36,0.5)] relative overflow-hidden">
+            <div class="absolute -top-16 -left-16 w-32 h-32 bg-amber-500/20 rounded-full blur-2xl pointer-events-none"></div>
+            <div class="w-20 h-20 bg-gradient-to-tr from-amber-500/30 to-yellow-300/30 rounded-2xl flex items-center justify-center mx-auto mb-4 border-2 border-amber-400/70 shadow-[0_0_30px_rgba(251,191,36,0.6)] animate-float">
+                <span id="gift-icon" class="text-4xl filter drop-shadow-[0_0_10px_rgba(251,191,36,0.8)]">🎁</span>
+            </div>
+            <h3 id="gift-header" class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-200 mb-1 uppercase tracking-wider">KOTAK HADIAH TERBUKA!</h3>
+            <p id="gift-title" class="text-lg font-bold text-cyan-300 mb-4"></p>
+            
+            <div id="gift-content" class="bg-slate-950/90 p-5 rounded-2xl border border-amber-500/20 mb-6 text-sm text-gray-200 text-left leading-relaxed max-h-60 overflow-y-auto shadow-inner"></div>
+
+            <button onclick="closeGiftModal()" class="w-full py-4 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-300 text-gray-950 font-black rounded-2xl transition transform hover:scale-[1.02] shadow-[0_0_30px_rgba(251,191,36,0.7)] text-base active:scale-95">AMBIL HADIAH & LANJUT</button>
+        </div>
+    </div>
+
+    <!-- 3. Generic Warning / Notification Popup (Ditingkatkan dengan tombol Close) -->
+    <div id="msg-modal" class="absolute inset-0 bg-black/85 backdrop-blur-md z-[100] hidden flex-col items-center justify-center interactive p-4">
+        <div class="animate-pop bg-gradient-to-b from-gray-900 via-slate-900 to-slate-950 p-6 md:p-8 rounded-3xl border-2 border-rose-500/80 max-w-sm w-full text-center shadow-[0_0_50px_rgba(244,63,94,0.5)] relative overflow-hidden">
+            
+            <!-- Tombol X untuk Batal -->
+            <button id="msg-close-btn" onclick="cancelMsgModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 hidden bg-gray-800/50">
+                <span class="text-xl font-bold leading-none">&times;</span>
+            </button>
+
+            <div class="w-14 h-14 bg-rose-500/20 rounded-full flex items-center justify-center mx-auto mb-3 border border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.4)]">
+                <span class="text-2xl text-rose-400">⚠️</span>
+            </div>
+            <h3 id="msg-title" class="text-xl font-black text-white mb-2 tracking-wide"></h3>
+            <p id="msg-body" class="text-gray-300 text-sm mb-6 whitespace-pre-line leading-relaxed"></p>
+            
+            <div class="flex gap-3 w-full">
+                <!-- Tombol Batal -->
+                <button id="msg-cancel-btn" onclick="cancelMsgModal()" class="hidden flex-1 py-3.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition border border-slate-600 text-sm active:scale-95">BATAL</button>
+                <!-- Tombol Konfirmasi -->
+                <button id="msg-confirm-btn" onclick="closeMsgModal()" class="flex-1 py-3.5 bg-gradient-to-r from-rose-600 via-red-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-extrabold rounded-xl transition transform shadow-[0_0_20px_rgba(244,63,94,0.6)] text-sm active:scale-95">SAYA MENGERTI</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Game Over Popup -->
+    <div id="game-over" class="absolute inset-0 bg-slate-950/95 backdrop-blur-2xl z-50 hidden flex-col items-center justify-center interactive p-4 text-center">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.25)_0,transparent_75%)] pointer-events-none"></div>
+        <div class="animate-pop relative z-10 max-w-md w-full bg-slate-900/90 border-2 border-red-500/80 rounded-3xl p-8 shadow-[0_0_60px_rgba(239,68,68,0.5)]">
+            <div class="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.6)]">
+                <span class="text-4xl">💀</span>
+            </div>
+            <h2 class="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-rose-400 to-pink-500 mb-3 drop-shadow-[0_0_20px_rgba(220,38,38,0.8)] tracking-wider uppercase">PERMAINAN USAI</h2>
+            <p id="go-reason" class="text-sm md:text-base text-gray-300 mb-8 font-medium leading-relaxed"></p>
+            <button onclick="returnToLogin()" class="w-full py-4 bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-black rounded-2xl text-base transition transform hover:scale-[1.02] shadow-[0_0_30px_rgba(99,102,241,0.6)] active:scale-95">KEMBALI KE HALAMAN LOGIN</button>
+        </div>
+    </div>
+
+    <!-- 5. Level Recap / Summary Popup -->
+    <div id="level-recap" class="absolute inset-0 bg-slate-950/95 backdrop-blur-2xl z-50 hidden flex-col items-center justify-center interactive p-4 text-center">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(52,211,153,0.2)_0,transparent_75%)] pointer-events-none"></div>
+        <div class="animate-pop relative z-10 max-w-lg w-full">
+            <h2 id="recap-title" class="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-400 mb-6 drop-shadow-[0_0_20px_rgba(52,211,153,0.6)] tracking-wide">LEVEL SELESAI</h2>
+            
+            <div class="bg-slate-900/90 backdrop-blur-xl p-6 md:p-8 rounded-3xl border-2 border-emerald-500/40 text-center mb-8 shadow-[0_0_50px_rgba(16,185,129,0.3)] w-full relative overflow-hidden">
+                <div class="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl"></div>
+                <p class="text-gray-400 text-xs uppercase tracking-widest mb-1 font-semibold">Jumlah Soal Benar</p>
+                <p class="text-4xl md:text-5xl font-black text-white mb-2"><span id="recap-correct" class="text-emerald-400">0</span><span id="recap-total-questions" class="text-xl text-gray-500"> / 7</span></p>
+                <div class="inline-block px-4 py-1.5 bg-cyan-500/10 border border-cyan-500/30 rounded-full mb-4">
+                    <span class="text-cyan-300 font-extrabold text-sm">Skor Level Ini: <span id="recap-level-score" class="text-white">0</span> / 100</span>
+                </div>
+                
+                <div class="w-full bg-slate-950 h-3 rounded-full mb-4 overflow-hidden p-0.5 border border-slate-800 shadow-inner">
+                    <div id="recap-bar" class="bg-gradient-to-r from-cyan-500 via-emerald-400 to-teal-300 h-full w-0 rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(52,211,153,0.8)]"></div>
+                </div>
+                <p class="text-base text-gray-300 mb-1">Status: <span id="recap-status" class="font-black"></span></p>
+                <p id="recap-req-text" class="text-xs text-amber-300 font-medium">(Syarat lulus: Maksimal 2 soal salah)</p>
+                <div id="recap-final-congrats" class="hidden text-sm text-cyan-200 bg-cyan-950/90 border border-cyan-400/50 p-4 rounded-2xl mt-4 leading-relaxed font-medium shadow-lg backdrop-blur-md"></div>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row gap-3.5 w-full justify-center">
+                <button id="btn-next-level" onclick="nextLevel()" class="hidden flex-1 py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:from-emerald-400 hover:to-cyan-500 text-white font-extrabold rounded-2xl text-base transition transform hover:scale-[1.02] shadow-[0_0_25px_rgba(16,185,129,0.6)] active:scale-95">LANJUT LEVEL</button>
+                <button id="btn-retry-level" onclick="restartLevel()" class="hidden flex-1 py-4 bg-gradient-to-r from-rose-500 via-red-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white font-extrabold rounded-2xl text-base transition transform hover:scale-[1.02] shadow-[0_0_25px_rgba(244,63,94,0.6)] active:scale-95">ULANGI LEVEL INI</button>
+                <button id="btn-download-pdf" onclick="exportPDF()" class="hidden flex-1 py-4 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-extrabold rounded-2xl text-base transition transform hover:scale-[1.02] shadow-[0_0_25px_rgba(6,182,212,0.6)] active:scale-95">UNDUH SKOR KESELURUHAN</button>
+                <button id="btn-back-login" onclick="returnToLogin()" class="hidden flex-1 py-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white font-extrabold rounded-2xl text-base transition transform hover:scale-[1.02] shadow-[0_0_25px_rgba(99,102,241,0.6)] active:scale-95">KEMBALI KE LOGIN</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container for Three.js Canvas -->
+    <div id="game-canvas"></div>
+
+    <script>
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSound(type) {
+            try {
+                initAudio();
+                if (!audioCtx) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+                if (type === 'bounce') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(500, now + 0.08);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'break') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(350, now);
+                    osc.frequency.exponentialRampToValueAtTime(120, now + 0.12);
+                    gain.gain.setValueAtTime(0.35, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.12);
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                } else if (type === 'correct' || type === 'gift') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.setValueAtTime(660, now + 0.1);
+                    osc.frequency.setValueAtTime(880, now + 0.2);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'wrong') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.setValueAtTime(140, now + 0.15);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'click') {
+                    // Tambahan efek suara klik untuk semua tombol UI
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(800, now);
+                    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.05);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                }
+            } catch(e) {
+                console.log(e);
+            }
+        }
+
+        // --- SISTEM BACKGROUND MUSIC (BGM) & SOUND UI ---
+        let bgmStarted = false;
+        function startBGM() {
+            if (bgmStarted) return;
+            initAudio();
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            bgmStarted = true;
+            
+            // Melodi retro 8-bit ceria untuk menu utama (C, E, G, C(high), G, E, C, G)
+            const notes = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 261.63, 392.00]; 
+            let noteIdx = 0;
+            
+            setInterval(() => {
+                // Musik HANYA berbunyi di halaman login (Otomatis senyap saat masuk game)
+                if (gameState !== "LOGIN") return; 
+                if (!audioCtx || audioCtx.state === 'suspended') return;
+                
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.type = 'square'; // Karakter suara retro/arcade
+                osc.frequency.value = notes[noteIdx];
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                const now = audioCtx.currentTime;
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.05, now + 0.02); // Volume pelan sebagai backsong
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                
+                osc.start(now);
+                osc.stop(now + 0.25);
+                
+                noteIdx = (noteIdx + 1) % notes.length;
+            }, 300); // Kecepatan tempo arpeggio
+        }
+
+        // Memutar suara klik dan menyalakan BGM saat ada interaksi pertama
+        document.addEventListener('click', (e) => {
+            if(!bgmStarted && gameState === "LOGIN") startBGM();
+            if (e.target.closest('button') || e.target.closest('.avatar-btn') || e.target.closest('select')) {
+                playSound('click');
+            }
+        });
+        
+        document.addEventListener('touchstart', (e) => {
+            if(!bgmStarted && gameState === "LOGIN") startBGM();
+        }, {passive: true});
+
+        const levelData = {
+            1: {
+                title: "Menentukan Mana yang Termasuk Persamaan Kuadrat",
+                hintText: "<strong>💡 Petunjuk Level 1:</strong><br>Bentuk umum persamaan kuadrat adalah \\( ax^2 + bx + c = 0 \\) dengan \\( a \\neq 0 \\). Ciri utamanya adalah variabel berderajat (pangkat) tertinggi **tepat 2** (bulat positif).",
+                questions: [
+                    { q: "Manakah di bawah ini yang merupakan persamaan kuadrat?", options: ["\\( 2x + 5 = 0 \\)", "\\( x^2 + 3x - 4 = 0 \\)", "\\( x^3 - 2x = 0 \\)", "\\( x^{\\frac{1}{2}} + 2 = 0 \\)"], answer: "\\( x^2 + 3x - 4 = 0 \\)" },
+                    { q: "Manakah di bawah ini yang BUKAN persamaan kuadrat?", options: ["\\( x^2 - 9 = 0 \\)", "\\( 3x^2 + x = 0 \\)", "\\( 2x - 7 = 0 \\)", "\\( x^2 = 16 \\)"], answer: "\\( 2x - 7 = 0 \\)" },
+                    { q: "Di antara persamaan berikut, yang merupakan persamaan kuadrat adalah...", options: ["\\( 5x + 2 = 3x - 1 \\)", "\\( x^2 + 2x + 1 = 0 \\)", "\\( 2x^3 - x^2 = 0 \\)", "\\( \\sqrt{x} + 1 = 0 \\)"], answer: "\\( x^2 + 2x + 1 = 0 \\)" },
+                    { q: "Persamaan berikut yang bukan persamaan kuadrat adalah...", options: ["\\( x^2 - 5x + 6 = 0 \\)", "\\( 4x^2 = 9 \\)", "\\( x(x - 3) = 0 \\)", "\\( 3x + 4 = 10 \\)"], answer: "\\( 3x + 4 = 10 \\)" },
+                    { q: "Manakah di bawah ini yang merupakan persamaan kuadrat?", options: ["\\( x^{\\frac{3}{2}} + 2x = 0 \\)", "\\( x^{-2} + x = 1 \\)", "\\( x^2 - 4x + 3 = 0 \\)", "\\( \\frac{2}{x} + x = 5 \\)"], answer: "\\( x^2 - 4x + 3 = 0 \\)" },
+                    { q: "Manakah di bawah ini yang BUKAN persamaan kuadrat?", options: ["\\( x^2 + x - 12 = 0 \\)", "\\( 5x^2 = 20 \\)", "\\( x^{\\frac{1}{2}} - 3 = 0 \\)", "\\( (x - 2)(x + 5) = 0 \\)"], answer: "\\( x^{\\frac{1}{2}} - 3 = 0 \\)" },
+                    { q: "Manakah di bawah ini yang merupakan persamaan kuadrat?", options: ["\\( (x - 1)^2 = x^2 + 2x \\)", "\\( x^2 + \\frac{1}{x} = 4 \\)", "\\( (x + 2)(x - 3) = 0 \\)", "\\( 2^{x} + x = 0 \\)"], answer: "\\( (x + 2)(x - 3) = 0 \\)" }
+                ]
+            },
+            2: {
+                title: "Menentukan Nilai Koefisien a, b, c",
+                hintText: "<strong>💡 Petunjuk Level 2:</strong><br>Susun ke bentuk baku \\( ax^2 + bx + c = 0 \\).<br>• \\( a \\) = koefisien \\( x^2 \\)<br>• \\( b \\) = koefisien \\( x \\)<br>• \\( c \\) = konstanta.",
+                questions: [
+                    { q: "Dari persamaan \\( 2x^2 + 5x - 3 = 0 \\), nilai \\(a\\), \\(b\\), dan \\(c\\) berturut-turut adalah...", options: ["2, 5, -3", "2, -5, 3", "-2, 5, 3", "2, 5, 3"], answer: "2, 5, -3" },
+                    { q: "Dari persamaan \\( x^2 - 7x + 10 = 0 \\), nilai \\(a + b + c\\) adalah...", options: ["4", "2", "-4", "18"], answer: "4" },
+                    { q: "Dari persamaan \\( 3x - 6 + x^2 = 0 \\), nilai \\(a\\), \\(b\\), dan \\(c\\) berturut-turut adalah...", options: ["1, 3, -6", "1, -3, 6", "3, 1, -6", "1, 3, 6"], answer: "1, 3, -6" },
+                    { q: "Dari persamaan \\( \\frac{1}{2}x^2 - 4x + 6 = 0 \\), nilai \\(a\\), \\(b\\), dan \\(c\\) berturut-turut adalah...", options: ["\\(\\frac{1}{2}\\), -4, 6", "\\(\\frac{1}{2}\\), 4, 6", "1, -8, 12", "2, -4, 6"], answer: "\\(\\frac{1}{2}\\), -4, 6" },
+                    { q: "Dari persamaan \\( 5 - 2x^2 + x = 0 \\), nilai \\(a\\), \\(b\\), dan \\(c\\) berturut-turut adalah...", options: ["-2, 1, 5", "2, 1, 5", "-2, -1, 5", "2, -1, -5"], answer: "-2, 1, 5" },
+                    { q: "Dari persamaan \\( \\frac{x^2}{3} - \\frac{2x}{5} + 1 = 0 \\), nilai \\(a\\), \\(b\\), dan \\(c\\) berturut-turut adalah...", options: ["\\(\\frac{1}{3}\\), \\(-\\frac{2}{5}\\), 1", "\\(\\frac{1}{3}\\), \\(\\frac{2}{5}\\), 1", "1, -2, 1", "3, 5, 1"], answer: "\\(\\frac{1}{3}\\), \\(-\\frac{2}{5}\\), 1" },
+                    { q: "Dari persamaan \\( \\frac{x^2 - 4}{2} + \\frac{x}{3} = 1 \\), nilai \\(a\\), \\(b\\), dan \\(c\\) berturut-turut adalah...", options: ["3, 2, -18", "1, 2, -6", "3, 2, -6", "6, 4, -12"], answer: "3, 2, -18" }
+                ]
+            },
+            3: {
+                title: "Menentukan Nilai Diskriminan D = b² - 4ac",
+                hintText: "<strong>💡 Petunjuk Level 3:</strong><br>Gunakan rumus Diskriminan: \\( D = b^2 - 4ac \\).<br>• Jika \\( D > 0 \\): 2 akar real berbeda<br>• Jika \\( D = 0 \\): 2 akar kembar/sama<br>• Jika \\( D < 0 \\): tidak ada akar real.",
+                questions: [
+                    { q: "Diskriminan dari persamaan \\( x^2 + 4x + 3 = 0 \\) adalah...", options: ["4", "8", "16", "28"], answer: "4" },
+                    { q: "Diskriminan dari persamaan \\( 2x^2 - 5x + 2 = 0 \\) adalah...", options: ["9", "41", "-9", "25"], answer: "9" },
+                    { q: "Diskriminan dari persamaan \\( x^2 - 6x + 9 = 0 \\) adalah...", options: ["0", "36", "72", "-36"], answer: "0" },
+                    { q: "Diskriminan dari persamaan \\( 3x^2 + 2x + 5 = 0 \\) adalah...", options: ["-56", "56", "64", "-64"], answer: "-56" }
+                ]
+            },
+            4: {
+                title: "Menentukan Akar-Akar Persamaan Kuadrat",
+                hintText: "<strong>💡 Petunjuk Level 4:</strong><br>Akar-akar adalah nilai \\( x \\) yang memenuhi persamaan kuadrat. Bisa dicari dengan:<br>1. Pemfaktoran \\( (x - x_1)(x - x_2) = 0 \\)<br>2. Rumus ABC: \\( x_{1,2} = \\frac{-b \\pm \\sqrt{D}}{2a} \\).",
+                questions: [
+                    { q: "Akar-akar dari persamaan \\( x^2 - 5x + 6 = 0 \\) adalah...", options: ["2 dan 3", "-2 dan -3", "1 dan 6", "-1 dan -6"], answer: "2 dan 3" },
+                    { q: "Akar-akar dari persamaan \\( x^2 + 7x + 12 = 0 \\) adalah...", options: ["3 dan 4", "-3 dan -4", "2 dan 6", "-2 dan -6"], answer: "-3 dan -4" },
+                    { q: "Akar-akar dari persamaan \\( x^2 - 9 = 0 \\) adalah...", options: ["3 dan -3", "9 dan -9", "3 saja", "-3 saja"], answer: "3 dan -3" },
+                    { q: "Akar-akar dari persamaan \\( 2x^2 - 7x + 3 = 0 \\) adalah...", options: ["3 dan \\(\\frac{1}{2}\\)", "-3 dan \\(-\\frac{1}{2}\\)", "3 dan 2", "1 dan \\(\\frac{3}{2}\\)"], answer: "3 dan \\(\\frac{1}{2}\\)" }
+                ]
+            }
+        };
+
+        let gameState = "LOGIN";
+        let currentLevel = 1;
+        let correctAnswersCount = 0;
+        let incorrectAnswersCount = 0;
+        let lives = 3;
+        let questionIndex = 0;
+        let cheatCount = 0;
+        let lastCheatTime = 0;
+        let levelPenalty = 0; // Tambahan variabel untuk penalti rintangan
+        
+        let onMsgModalConfirm = null;
+        let onMsgModalCancel = null;
+
+        let playerData = {
+            name: '',
+            avatar: 'male',
+            avatarColor: 0xEF4444
+        };
+
+        let currentLevelQuestions = [];
+        let currentQuestion = null;
+        let currentSpecialPlatform = null;
+        let tempBoxPos = null;
+        let lastDisplayedOptions = [];
+
+        // Menyimpan histori nilai agar saat restart level, nilai sebelumnya tetap aman
+        let levelScoresHistory = { 
+            1: null, 
+            2: null, 
+            3: null, 
+            4: null 
+        };
+
+        const levelThemes = {
+            1: { bgTop: "#38bdf8", bgBottom: "#030712", pillar: 0xE5E7EB, platform: 0xF97316, specialPlatform: 0x06B6D4, motif: "Cyan Neon Strip" },
+            2: { bgTop: "#34d399", bgBottom: "#022c22", pillar: 0x94a3b8, platform: 0x10B981, specialPlatform: 0xFBBF24, motif: "Gold Stained Ring" },
+            3: { bgTop: "#e879f9", bgBottom: "#0f172a", pillar: 0xf43f5e, platform: 0xA855F7, specialPlatform: 0x38BDF8, motif: "Sky Blue Pulse" },
+            4: { bgTop: "#f87171", bgBottom: "#180202", pillar: 0xfacc15, platform: 0xEF4444, specialPlatform: 0xFF00FF, motif: "Magenta Diamond" }
+        };
+
+        function selectAvatar(type, btnElement) {
+            document.querySelectorAll('.avatar-btn').forEach(b => {
+                b.classList.remove('border-cyan-400', 'border-b-cyan-600', 'active:border-b-cyan-400');
+                b.classList.add('border-gray-800', 'border-b-gray-900', 'active:border-b-gray-800');
+            });
+            btnElement.classList.remove('border-gray-800', 'border-b-gray-900', 'active:border-b-gray-800');
+            btnElement.classList.add('border-cyan-400', 'border-b-cyan-600', 'active:border-b-cyan-400');
+            
+            playerData.avatar = type;
+            playerData.avatarColor = type === 'male' ? 0xEF4444 : 0xD946EF;
+        }
+
+        // Fungsi modifikasi untuk menampilkan warning modal (Mendukung aksi batal/X)
+        function showWarningModal(title, body, onConfirm = null, isCancellable = false, onCancel = null) {
+            document.getElementById('msg-title').innerText = title;
+            document.getElementById('msg-body').innerText = body;
+
+            onMsgModalConfirm = onConfirm;
+            onMsgModalCancel = onCancel;
+
+            const closeBtn = document.getElementById('msg-close-btn');
+            const cancelBtn = document.getElementById('msg-cancel-btn');
+            const confirmBtn = document.getElementById('msg-confirm-btn');
+
+            if (isCancellable) {
+                closeBtn.classList.remove('hidden');
+                cancelBtn.classList.remove('hidden');
+                confirmBtn.innerText = "YA, KELUAR";
+            } else {
+                closeBtn.classList.add('hidden');
+                cancelBtn.classList.add('hidden');
+                confirmBtn.innerText = "SAYA MENGERTI";
+            }
+
+            document.getElementById('msg-modal').classList.remove('hidden');
+            document.getElementById('msg-modal').style.display = "flex";
+        }
+
+        function closeMsgModal() {
+            document.getElementById('msg-modal').classList.add('hidden');
+            if (typeof onMsgModalConfirm === 'function') {
+                const cb = onMsgModalConfirm;
+                onMsgModalConfirm = null;
+                onMsgModalCancel = null;
+                cb();
+            }
+        }
+
+        function cancelMsgModal() {
+            document.getElementById('msg-modal').classList.add('hidden');
+            if (typeof onMsgModalCancel === 'function') {
+                const cb = onMsgModalCancel;
+                onMsgModalConfirm = null;
+                onMsgModalCancel = null;
+                cb();
+            }
+        }
+
+        function startGameFromLogin() {
+            initAudio();
+            const n = document.getElementById('player-name').value;
+            if (!n || n.trim() === "") {
+                showWarningModal("Perhatian", "Harap pilih Nama Lengkap Siswa terlebih dahulu sebelum memulai.", null, false);
+                return;
+            }
+            playerData.name = n.trim();
+            
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            
+            document.getElementById('hud-name').innerText = playerData.name;
+            document.getElementById('hud-avatar').style.backgroundColor = playerData.avatar === 'male' ? '#EF4444' : '#D946EF';
+            
+            initThreeJS();
+            
+            // PERBAIKAN: Memaksa mesin 3D untuk memperbarui warna bola sesuai pilihan
+            // Terutama jika player melakukan restart / kembali dari halaman login
+            if (ball && ball.material) {
+                ball.material.color.setHex(playerData.avatarColor);
+                ball.material.emissive.setHex(playerData.avatarColor);
+            }
+            
+            startLevel(currentLevel);
+        }
+
+        function computeCurrentLevelScore() {
+            let totalQ = currentLevelQuestions.length || 1;
+            let baseScore = Math.round((correctAnswersCount / totalQ) * 100);
+            let finalScore = baseScore - levelPenalty;
+            // Menghilangkan batasan (clamping) 0 agar skor bisa bernilai negatif (minus) saat belum ada skor tapi kena duri
+            return finalScore;
+        }
+
+        function computeOverallTotalScore() {
+            let sum = 0;
+            for (let lvl = 1; lvl <= 4; lvl++) {
+                if (lvl === currentLevel && (gameState === "PLAYING" || gameState === "QUIZ" || gameState === "GIFT_MODAL")) {
+                    let ongoing = computeCurrentLevelScore();
+                    if (levelScoresHistory[lvl] !== null) {
+                        // Mempertahankan visual akumulasi menggunakan skor tertinggi yang tersimpan
+                        sum += Math.max(ongoing, levelScoresHistory[lvl].score);
+                    } else {
+                        sum += ongoing;
+                    }
+                } else if (levelScoresHistory[lvl] !== null) {
+                    sum += levelScoresHistory[lvl].score;
+                }
+            }
+            return sum;
+        }
+
+        function updateHUD() {
+            let totalQ = currentLevelQuestions.length || 7;
+            let currentLvlScore = computeCurrentLevelScore();
+            let totalScore = computeOverallTotalScore();
+            
+            document.getElementById('hud-score').innerText = `Skor Level: ${currentLvlScore}/100 | Total: ${totalScore}`;
+            document.getElementById('hud-level').innerText = `LEVEL ${currentLevel}`;
+            document.getElementById('hud-progress').innerText = `Soal: ${Math.min(questionIndex + 1, totalQ)}/${totalQ}`;
+            
+            let hearts = '';
+            for(let i=0; i<lives; i++) hearts += '<i class="fa-solid fa-heart text-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,0.8)] mx-0.5"></i>';
+            document.getElementById('hud-lives').innerHTML = hearts || '<i class="fa-solid fa-skull text-gray-400 drop-shadow-md"></i>';
+        }
+
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden && gameState === "PLAYING") triggerAntiCheat();
+        });
+        window.addEventListener("blur", () => {
+            if (gameState === "PLAYING") triggerAntiCheat();
+        });
+
+        function triggerAntiCheat() {
+            const now = Date.now();
+            if (now - lastCheatTime < 1200) return;
+            lastCheatTime = now;
+
+            cheatCount++;
+            if (cheatCount >= 3) {
+                // Restart secara paksa, tidak bisa dicancel
+                showWarningModal(
+                    "PELANGGARAN MAKSIMAL (3x)", 
+                    `Anda telah meninggalkan halaman permainan sebanyak 3 kali.\n\nLevel ${currentLevel} ini akan otomatis diulangi dari awal. Skor dari level sebelumnya tetap tersimpan aman.`, 
+                    () => {
+                        restartLevel();
+                    },
+                    false
+                );
+            } else {
+                showWarningModal(
+                    "PERINGATAN PELANGGARAN", 
+                    `Sistem mendeteksi Anda meninggalkan halaman permainan!\n\nPelanggaran Level Ini: ${cheatCount} / 3\nJika mencapai 3 kali, level ini akan otomatis diulangi dari awal.`,
+                    null,
+                    false
+                );
+            }
+        }
+
+        function prepareLevelQuestions(lvl) {
+            currentLevelQuestions = [...levelData[lvl].questions];
+        }
+
+        function showQuizUI(isRetry = false) {
+            gameState = "QUIZ";
+            document.getElementById('quiz-ui').classList.remove('hidden');
+            document.getElementById('quiz-ui').style.display = "flex";
+            document.getElementById('quiz-options').classList.remove('hidden');
+            document.getElementById('wrong-actions').classList.add('hidden');
+            
+            document.getElementById('quiz-lives-display').innerText = lives;
+            
+            if (!isRetry) {
+                currentQuestion = currentLevelQuestions[questionIndex];
+            }
+            
+            document.getElementById('question-text').innerHTML = currentQuestion.q;
+            
+            let options = [...currentQuestion.options];
+            let attempts = 0;
+            do {
+                for (let i = options.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [options[i], options[j]] = [options[j], options[i]];
+                }
+                attempts++;
+            } while (isRetry && options.length > 1 && JSON.stringify(options) === JSON.stringify(lastDisplayedOptions) && attempts < 10);
+            
+            lastDisplayedOptions = [...options];
+            
+            const container = document.getElementById('quiz-options');
+            container.innerHTML = '';
+            
+            options.forEach(opt => {
+                let btn = document.createElement('button');
+                // Updated Styling for Options using modern 3D button approach
+                btn.className = 'btn-3d w-full py-4 px-5 bg-slate-900 text-white rounded-2xl transition border-2 border-slate-700 border-b-[5px] hover:border-cyan-500 text-base md:text-lg font-bold shadow-md hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] text-left flex items-center justify-between group';
+                btn.innerHTML = `<span class="group-hover:text-cyan-300 transition">${opt}</span><span class="text-lg text-cyan-400 opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-hand-pointer fa-beat"></i></span>`;
+                btn.onclick = () => processAnswer(opt);
+                container.appendChild(btn);
+            });
+            
+            if (window.MathJax) {
+                MathJax.typesetPromise([document.getElementById('quiz-ui')]).catch((err) => console.log(err));
+            }
+        }
+
+        function processAnswer(selectedAnswer) {
+            if (selectedAnswer === currentQuestion.answer) {
+                playSound('correct');
+                correctAnswersCount++;
+                questionIndex++;
+                updateHUD();
+                resumeGameAfterQuiz();
+            } else {
+                playSound('wrong');
+                incorrectAnswersCount++;
+                document.getElementById('quiz-options').classList.add('hidden');
+                document.getElementById('wrong-actions').classList.remove('hidden');
+                document.getElementById('wrong-actions').style.display = "flex";
+            }
+        }
+
+        function retryQuestion() {
+            lives--;
+            updateHUD();
+            if (lives <= 0) {
+                document.getElementById('quiz-ui').classList.add('hidden');
+                // Restart secara paksa, tidak bisa dicancel
+                showWarningModal(
+                    "NYAWA HABIS!", 
+                    `Nyawa kamu telah habis!\n\nTenang saja, kamu HANYA MENGULANG LEVEL ${currentLevel} dari awal. Skor level sebelumnya tetap tersimpan aman.`, 
+                    () => {
+                        restartLevel();
+                    },
+                    false
+                );
+            } else {
+                showQuizUI(true);
+            }
+        }
+
+        function skipQuestion() {
+            questionIndex++;
+            updateHUD();
+            resumeGameAfterQuiz();
+        }
+
+        function resumeGameAfterQuiz() {
+            document.getElementById('quiz-ui').classList.add('hidden');
+            if (currentSpecialPlatform) {
+                currentSpecialPlatform.visible = false;
+                currentSpecialPlatform.userData.active = false;
+            }
+            gameState = "PLAYING";
+        }
+
+        function triggerGiftBox(giftNumber) {
+            playSound('gift');
+            gameState = "GIFT_MODAL";
+            
+            let title = '';
+            let content = '';
+            
+            if (giftNumber === 1) {
+                title = `KOTAK HADIAH 1: PETUNJUK MATERI LEVEL ${currentLevel}`;
+                content = levelData[currentLevel].hintText || "<p>Tetap fokus dan perhatikan bentuk baku persamaan kuadrat!</p>";
+            } else {
+                lives += 1;
+                title = `KOTAK HADIAH 2: TAMBAHAN 1 NYAWA ❤️`;
+                content = `<p class="text-red-400 font-bold mb-1.5">Energi Nyawa Diperoleh!</p>
+                           <p>Karakter kamu mendapatkan tambahan <strong>+1 Nyawa</strong>.</p>
+                           <p class="mt-2 text-xs text-gray-400">Total Nyawa Sekarang: <strong>${lives} ❤️</strong></p>`;
+            }
+            
+            document.getElementById('gift-header').innerText = `KOTAK HADIAH #${giftNumber} TERBUKA!`;
+            document.getElementById('gift-title').innerText = title;
+            document.getElementById('gift-content').innerHTML = content;
+            
+            document.getElementById('gift-modal').classList.remove('hidden');
+            document.getElementById('gift-modal').style.display = "flex";
+            
+            if (window.MathJax) {
+                MathJax.typesetPromise([document.getElementById('gift-content')]).catch((err) => console.log(err));
+            }
+            
+            updateHUD();
+        }
+
+        function closeGiftModal() {
+            document.getElementById('gift-modal').classList.add('hidden');
+            gameState = "PLAYING";
+        }
+
+        function showDamageFloatText() {
+            const el = document.getElementById('damage-text');
+            el.classList.remove('hidden', 'animate-damage');
+            // Memicu reflow agar animasi bisa diputar ulang
+            void el.offsetWidth;
+            el.classList.add('animate-damage');
+            setTimeout(() => {
+                el.classList.add('hidden');
+            }, 1000);
+        }
+
+        let scene, camera, renderer, towerGroup, ball;
+        let platforms = [];
+        let specialPlatforms = [];
+        
+        const GRAVITY = 0.025;
+        const BOUNCE_VELOCITY = 0.36;
+        const BALL_RADIUS = 0.4;
+        const PLATFORM_THICKNESS = 0.5;
+        const GAP_ANGLE = Math.PI / 2.5;
+        
+        let ballVy = 0;
+
+        function initThreeJS() {
+            if (renderer) return;
+            const canvasContainer = document.getElementById('game-canvas');
+            
+            scene = new THREE.Scene();
+
+            camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 100);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setClearColor(0x000000, 0);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            canvasContainer.appendChild(renderer.domElement);
+
+            applyLevelTheme(currentLevel);
+
+            const ambient = new THREE.AmbientLight(0xffffff, 0.75);
+            scene.add(ambient);
+            
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            dirLight.position.set(10, 25, 10);
+            scene.add(dirLight);
+
+            towerGroup = new THREE.Group();
+            scene.add(towerGroup);
+
+            const ballGeom = new THREE.SphereGeometry(BALL_RADIUS, 32, 32);
+            const ballMat = new THREE.MeshPhongMaterial({ 
+                color: playerData.avatarColor, 
+                emissive: playerData.avatarColor, 
+                emissiveIntensity: 0.5,
+                shininess: 100
+            });
+            ball = new THREE.Mesh(ballGeom, ballMat);
+            scene.add(ball);
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+            
+            setupControls();
+            requestAnimationFrame(animateLoop);
+        }
+
+        function applyLevelTheme(lvl) {
+            const theme = levelThemes[lvl] || levelThemes[1];
+            const canvasContainer = document.getElementById('game-canvas');
+            if (canvasContainer) {
+                canvasContainer.style.background = `linear-gradient(to bottom, ${theme.bgTop}, ${theme.bgBottom})`;
+            }
+            if (scene) {
+                scene.background = null;
+                scene.fog = new THREE.Fog(new THREE.Color(theme.bgBottom), 15, 30);
+            }
+        }
+
+        function createPlatform(y, type, giftNumber = 1) {
+            const group = new THREE.Group();
+            group.position.y = y;
+            const theme = levelThemes[currentLevel] || levelThemes[1];
+            
+            if (type === 'QUESTION') {
+                const material = new THREE.MeshPhongMaterial({ 
+                    color: theme.specialPlatform, 
+                    emissive: theme.specialPlatform,
+                    emissiveIntensity: 0.5,
+                    flatShading: true 
+                });
+                const geom = new THREE.CylinderGeometry(3.5, 3.5, PLATFORM_THICKNESS, 32);
+                const mesh = new THREE.Mesh(geom, material);
+                group.add(mesh);
+
+                const ringGeom = new THREE.TorusGeometry(3.2, 0.18, 16, 32);
+                const ringMat = new THREE.MeshPhongMaterial({ color: 0xFFFFFF, emissive: 0xFFFFFF, emissiveIntensity: 0.9 });
+                const ring = new THREE.Mesh(ringGeom, ringMat);
+                ring.rotation.x = Math.PI / 2;
+                ring.position.y = PLATFORM_THICKNESS / 2 + 0.05;
+                group.add(ring);
+
+                for(let i=0; i<6; i++) {
+                    let angle = (i / 6) * Math.PI * 2;
+                    let dotGeom = new THREE.BoxGeometry(0.3, 0.1, 0.3);
+                    let dotMat = new THREE.MeshPhongMaterial({ color: 0x030712 });
+                    let dot = new THREE.Mesh(dotGeom, dotMat);
+                    dot.position.set(Math.cos(angle)*2.4, PLATFORM_THICKNESS / 2 + 0.08, Math.sin(angle)*2.4);
+                    group.add(dot);
+                }
+
+                group.userData = { isSpecial: true, isGift: false, active: true };
+            } 
+            else if (type === 'GIFT') {
+                const thetaLength = Math.PI * 2 - GAP_ANGLE;
+                const thetaStart = Math.random() * Math.PI * 2;
+
+                const material = new THREE.MeshPhongMaterial({ color: theme.platform, flatShading: true });
+                const geom = new THREE.CylinderGeometry(3.5, 3.5, PLATFORM_THICKNESS, 32, 1, false, thetaStart, thetaLength);
+                const mesh = new THREE.Mesh(geom, material);
+                group.add(mesh);
+
+                // Buat Pivot (Poros Putar) untuk mengorbitkan Hadiah
+                const pivot = new THREE.Group();
+                pivot.position.y = PLATFORM_THICKNESS / 2 + 0.5;
+
+                const boxGroup = new THREE.Group();
+                const boxGeom = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+                const boxColor = giftNumber === 1 ? 0xFBBF24 : 0x38BDF8;
+                const boxMat = new THREE.MeshPhongMaterial({ color: boxColor, emissive: boxColor, emissiveIntensity: 0.5 });
+                const giftMesh = new THREE.Mesh(boxGeom, boxMat);
+
+                const ribbonGeom = new THREE.BoxGeometry(0.85, 0.85, 0.2);
+                const ribbonMat = new THREE.MeshPhongMaterial({ color: 0xEF4444, emissive: 0xDC2626 });
+                const ribbon = new THREE.Mesh(ribbonGeom, ribbonMat);
+                boxGroup.add(giftMesh);
+                boxGroup.add(ribbon);
+
+                // Geser Box sejauh Radius agar tidak berada di tengah poros tiang
+                const boxRadius = 2.4;
+                boxGroup.position.set(boxRadius, 0, 0); 
+                
+                // Masukkan Box ke Pivot
+                pivot.add(boxGroup);
+                
+                // Rotasi awal Pivot acak
+                pivot.rotation.y = Math.random() * Math.PI * 2;
+                group.add(pivot);
+
+                let gapStart = thetaStart + thetaLength + 0.15;
+                let gapEnd = thetaStart + Math.PI * 2 - 0.15;
+
+                group.userData = { 
+                    isSpecial: false, 
+                    isGift: true,
+                    giftNumber: giftNumber,
+                    giftPivot: pivot, // Simpan referensi pivot untuk animasi orbit
+                    giftBob: boxGroup, // Simpan referensi box untuk animasi melayang
+                    giftMesh: giftMesh, // Target kolisi
+                    giftActive: true,
+                    gapStart: gapStart, 
+                    gapEnd: gapEnd, 
+                    active: true 
+                };
+            }
+            else if (type === 'OBSTACLE') {
+                const material = new THREE.MeshPhongMaterial({ color: theme.platform, flatShading: true });
+                const thetaLength = Math.PI * 2 - GAP_ANGLE;
+                const thetaStart = Math.random() * Math.PI * 2;
+                
+                const geom = new THREE.CylinderGeometry(3.5, 3.5, PLATFORM_THICKNESS, 32, 1, false, thetaStart, thetaLength);
+                const mesh = new THREE.Mesh(geom, material);
+                group.add(mesh);
+
+                // Tambahkan Rintangan Duri Merah
+                const margin = 0.5;
+                const spikeAngle = thetaStart + margin + Math.random() * (thetaLength - margin * 2);
+                
+                const spikeGeom = new THREE.ConeGeometry(0.5, 0.8, 16);
+                const spikeMat = new THREE.MeshPhongMaterial({ color: 0xEF4444, emissive: 0x990000 });
+                const spike = new THREE.Mesh(spikeGeom, spikeMat);
+                
+                const radius = 2.0;
+                spike.position.set(
+                    Math.sin(spikeAngle) * radius,
+                    PLATFORM_THICKNESS / 2 + 0.4,
+                    Math.cos(spikeAngle) * radius
+                );
+                group.add(spike);
+                
+                let gapStart = thetaStart + thetaLength + 0.15;
+                let gapEnd = thetaStart + Math.PI * 2 - 0.15;
+                
+                group.userData = { 
+                    isSpecial: false, 
+                    isGift: false,
+                    isObstacle: true,
+                    obstacleActive: true,
+                    obstacleMesh: spike,
+                    gapStart: gapStart, 
+                    gapEnd: gapEnd, 
+                    active: true 
+                };
+            }
+            else {
+                const material = new THREE.MeshPhongMaterial({ color: theme.platform, flatShading: true });
+                const thetaLength = Math.PI * 2 - GAP_ANGLE;
+                const thetaStart = Math.random() * Math.PI * 2;
+                
+                const geom = new THREE.CylinderGeometry(3.5, 3.5, PLATFORM_THICKNESS, 32, 1, false, thetaStart, thetaLength);
+                const mesh = new THREE.Mesh(geom, material);
+                group.add(mesh);
+
+                // PENYELESAIAN BUG & ACAK POSISI STRIPE
+                // Kalkulasi angle acak di dalam bagian papan yang solid (berjarak aman dari tepi bolongan)
+                const margin = 0.4;
+                const randomAngle = thetaStart + margin + Math.random() * (thetaLength - margin * 2);
+                
+                const stripeGeom = new THREE.BoxGeometry(0.2, 0.05, 2.8);
+                const stripeMat = new THREE.MeshPhongMaterial({ color: 0xFFFFFF, emissive: 0x444444 });
+                let stripe = new THREE.Mesh(stripeGeom, stripeMat);
+                
+                // Posisikan menggunakan koordinat trigonometri lingkaran (r=1.8) berdasarkan randomAngle
+                // Three.js CylinderGeometry orientasi default dimulai pada Z+ menyapu ke arah X+
+                const radius = 1.8;
+                stripe.position.set(
+                    Math.sin(randomAngle) * radius,
+                    PLATFORM_THICKNESS / 2 + 0.03,
+                    Math.cos(randomAngle) * radius
+                );
+                // Putar stripe (kotak panjang) agar sejajar dengan titik pusat silinder
+                stripe.rotation.y = randomAngle;
+                group.add(stripe);
+                
+                let gapStart = thetaStart + thetaLength + 0.15;
+                let gapEnd = thetaStart + Math.PI * 2 - 0.15;
+                
+                group.userData = { 
+                    isSpecial: false, 
+                    isGift: false,
+                    gapStart: gapStart, 
+                    gapEnd: gapEnd, 
+                    active: true 
+                };
+            }
+            return group;
+        }
+
+        function generateLevel(levelNumber) {
+            applyLevelTheme(levelNumber);
+            prepareLevelQuestions(levelNumber);
+            
+            while(towerGroup.children.length > 0) {
+                towerGroup.remove(towerGroup.children[0]);
+            }
+            platforms = [];
+            specialPlatforms = [];
+            
+            ball.position.set(0, 0, 2.6);
+            ballVy = 0;
+            towerGroup.rotation.y = 0;
+
+            let yPos = -4;
+            let spacing = 4;
+
+            const totalQCount = currentLevelQuestions.length;
+            let currentGiftCount = 0;
+            
+            for (let q = 0; q < totalQCount; q++) {
+                // Diubah menjadi tepat 15 papan per seksi soal untuk memastikan akurasi penempatan duri
+                let sectionLength = 15; 
+                let giftPlacedInSection = false;
+                let giftIndexPos = Math.floor(sectionLength / 2);
+
+                for (let i = 0; i < sectionLength; i++) {
+                    let type = 'NORMAL';
+                    let giftNum = 1;
+                    
+                    if ((q === 0 || q === Math.floor(totalQCount / 2)) && !giftPlacedInSection && i === giftIndexPos && currentGiftCount < 2) {
+                        type = 'GIFT';
+                        currentGiftCount++;
+                        giftNum = currentGiftCount;
+                        giftPlacedInSection = true;
+                    } 
+                    // Penempatan Duri: PASTI di papan ke-5 (index 4) dan ke-12 (index 11) setelah papan soal sebelumnya
+                    else if (i === 4 || i === 11) {
+                        type = 'OBSTACLE';
+                    }
+
+                    let p = createPlatform(yPos, type, giftNum);
+                    towerGroup.add(p);
+                    platforms.push(p);
+                    yPos -= spacing;
+                }
+                
+                let sp = createPlatform(yPos, 'QUESTION');
+                towerGroup.add(sp);
+                platforms.push(sp);
+                specialPlatforms.push(sp);
+                yPos -= spacing;
+            }
+
+            // Papan menuju Finish (tanpa duri)
+            let finishSectionLength = 3;
+            for (let i = 0; i < finishSectionLength; i++) {
+                let p = createPlatform(yPos, 'NORMAL');
+                towerGroup.add(p);
+                platforms.push(p);
+                yPos -= spacing;
+            }
+
+            let fp = createPlatform(yPos, 'QUESTION');
+            fp.userData.isFinish = true;
+            fp.children[0].material.color.setHex(0x22C55E);
+            towerGroup.add(fp);
+            platforms.push(fp);
+
+            const totalHeight = Math.abs(yPos) + 10;
+            const theme = levelThemes[levelNumber] || levelThemes[1];
+            const pillarGeom = new THREE.CylinderGeometry(0.8, 0.8, totalHeight, 32);
+            const pillarMat = new THREE.MeshPhongMaterial({ color: theme.pillar });
+            const pillar = new THREE.Mesh(pillarGeom, pillarMat);
+            pillar.position.y = -totalHeight / 2 + 2;
+            towerGroup.add(pillar);
+        }
+
+        function setupControls() {
+            let isDragging = false;
+            let previousX = 0;
+            
+            const handleStart = (x) => { if(gameState === "PLAYING") { isDragging = true; previousX = x; } };
+            const handleMove = (x) => {
+                if (!isDragging || gameState !== "PLAYING") return;
+                const deltaX = x - previousX;
+                towerGroup.rotation.y += deltaX * 0.015;
+                previousX = x;
+            };
+            const handleEnd = () => { isDragging = false; };
+
+            document.addEventListener('mousedown', e => handleStart(e.clientX));
+            document.addEventListener('mousemove', e => handleMove(e.clientX));
+            document.addEventListener('mouseup', handleEnd);
+            
+            document.addEventListener('touchstart', e => handleStart(e.touches[0].clientX), {passive: false});
+            document.addEventListener('touchmove', e => { handleMove(e.touches[0].clientX); e.preventDefault(); }, {passive: false});
+            document.addEventListener('touchend', handleEnd);
+        }
+
+        function isAngleBetween(target, start, end) {
+            target = (target % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+            start = (start % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+            end = (end % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+            
+            if (start <= end) {
+                return target >= start && target <= end;
+            } else {
+                return target >= start || target <= end;
+            }
+        }
+
+        function updatePhysics() {
+            let prevY = ball.position.y;
+            ballVy -= GRAVITY;
+            
+            if (ballVy < -0.75) ballVy = -0.75; 
+            ball.position.y += ballVy;
+
+            platforms.forEach(p => {
+                if (p.userData.isGift && p.userData.giftActive && p.userData.giftMesh) {
+                    if (!tempBoxPos) tempBoxPos = new THREE.Vector3();
+                    p.userData.giftMesh.getWorldPosition(tempBoxPos);
+                    let distance = ball.position.distanceTo(tempBoxPos);
+
+                    if (distance < 1.3) {
+                        p.userData.giftActive = false;
+                        p.userData.giftMesh.visible = false;
+                        triggerGiftBox(p.userData.giftNumber || 1);
+                    }
+                }
+
+                // Cek Tabrakan dengan Rintangan Duri Merah
+                if (p.userData.isObstacle && p.userData.obstacleActive && p.userData.obstacleMesh) {
+                    if (!tempBoxPos) tempBoxPos = new THREE.Vector3();
+                    p.userData.obstacleMesh.getWorldPosition(tempBoxPos);
+                    let distance = ball.position.distanceTo(tempBoxPos);
+
+                    if (distance < 1.2) {
+                        p.userData.obstacleActive = false;
+                        p.userData.obstacleMesh.material.color.setHex(0x64748b); // Berubah abu-abu
+                        p.userData.obstacleMesh.material.emissive.setHex(0x334155);
+                        levelPenalty += 5; // Pengurangan 5 poin
+                        playSound('wrong');
+                        showDamageFloatText(); // Munculkan text animasi -5
+                        updateHUD();
+                    }
+                }
+            });
+
+            if (ballVy < 0) {
+                for (let p of platforms) {
+                    if (!p.userData.active) continue;
+                    
+                    let platformTopY = p.position.y + PLATFORM_THICKNESS / 2;
+                    
+                    if (prevY - BALL_RADIUS >= platformTopY && ball.position.y - BALL_RADIUS <= platformTopY) {
+                        
+                        if (p.userData.isFinish) {
+                            playSound('bounce');
+                            handleLevelComplete();
+                            ballVy = BOUNCE_VELOCITY;
+                            ball.position.y = platformTopY + BALL_RADIUS;
+                            break;
+                        }
+                        
+                        if (p.userData.isSpecial) {
+                            playSound('bounce');
+                            ballVy = BOUNCE_VELOCITY;
+                            ball.position.y = platformTopY + BALL_RADIUS;
+                            currentSpecialPlatform = p;
+                            showQuizUI();
+                            break;
+                        } else {
+                            let localAngle = (-towerGroup.rotation.y) % (Math.PI * 2);
+                            let inGap = isAngleBetween(localAngle, p.userData.gapStart, p.userData.gapEnd);
+                            
+                            if (inGap) {
+                                playSound('break');
+                                p.userData.active = false;
+                                updateHUD();
+                            } else {
+                                playSound('bounce');
+                                ballVy = BOUNCE_VELOCITY;
+                                ball.position.y = platformTopY + BALL_RADIUS;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let smoothCamY = 0;
+
+        function animateLoop() {
+            requestAnimationFrame(animateLoop);
+            
+            const time = Date.now() * 0.002; // Waktu untuk fungsi sinus melayang
+
+            if (gameState === "PLAYING") {
+                updatePhysics();
+            }
+            
+            // Animasi untuk elemen khusus di menara
+            platforms.forEach(p => {
+                if (p.userData.isGift && p.userData.giftActive) {
+                    if (p.userData.giftPivot) {
+                        p.userData.giftPivot.rotation.y += 0.012; // Efek mengorbit / berputar mengelilingi menara
+                    }
+                    if (p.userData.giftBob) {
+                        p.userData.giftBob.position.y = Math.sin(time + p.position.y) * 0.35; // Efek melayang naik turun
+                        p.userData.giftBob.rotation.x += 0.01; // Putar kotaknya sendiri
+                        p.userData.giftBob.rotation.y += 0.02;
+                    }
+                }
+            });
+
+            if (camera && ball) {
+                let targetCamY = ball.position.y + 3.5;
+                smoothCamY += (targetCamY - smoothCamY) * 0.12;
+                
+                camera.position.y = smoothCamY;
+                camera.position.x = 0;
+                camera.position.z = 10;
+                camera.lookAt(0, smoothCamY - 3.5, 0);
+            }
+            
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        function startLevel(lvl) {
+            currentLevel = lvl;
+            lives = 3;
+            cheatCount = 0;
+            
+            // Hanya mereset statistik untuk level yang berjalan saat ini
+            correctAnswersCount = 0;
+            incorrectAnswersCount = 0;
+            questionIndex = 0;
+            levelPenalty = 0; // Reset penalti rintangan
+            
+            generateLevel(lvl);
+            smoothCamY = ball.position.y + 3.5;
+            updateHUD();
+            gameState = "PLAYING";
+        }
+
+        function handleLevelComplete() {
+            gameState = "LEVEL_COMPLETE";
+            const totalQ = currentLevelQuestions.length;
+            const finalLvlScore = computeCurrentLevelScore();
+            
+            // Logika Penyimpanan SKOR TERTINGGI (Highest Score Retention)
+            let prevData = levelScoresHistory[currentLevel];
+            let prevBest = prevData !== null ? prevData.score : -999;
+            let isPassed = correctAnswersCount >= (totalQ - ((currentLevel === 1 || currentLevel === 2) ? 2 : 1));
+
+            // Hanya timpa data/histori jika skor kali ini lebih besar, atau sebelumnya belum pernah lulus
+            if (!prevData || finalLvlScore > prevBest || (!isPassed && prevData === null)) {
+                levelScoresHistory[currentLevel] = { 
+                    score: finalLvlScore, 
+                    correct: correctAnswersCount, 
+                    incorrect: incorrectAnswersCount 
+                };
+            }
+
+            document.getElementById('level-recap').classList.remove('hidden');
+            document.getElementById('level-recap').style.display = "flex";
+            
+            let percentage = Math.min((correctAnswersCount / totalQ) * 100, 100);
+            setTimeout(() => {
+                document.getElementById('recap-bar').style.width = `${percentage}%`;
+            }, 100);
+            
+            document.getElementById('recap-correct').innerText = correctAnswersCount;
+            document.getElementById('recap-total-questions').innerText = ` / ${totalQ}`;
+            
+            // Info skor pada UI - Beritahu jika skor yang diambil adalah skor sebelumnya
+            if (prevData !== null && prevBest > finalLvlScore) {
+                document.getElementById('recap-level-score').innerHTML = `${finalLvlScore} <span class="text-xs text-amber-300 ml-1 block sm:inline">(Tetap pakai skor tertinggi: ${prevBest})</span>`;
+            } else {
+                document.getElementById('recap-level-score').innerText = `${finalLvlScore}`;
+            }
+            
+            const statusEl = document.getElementById('recap-status');
+            const btnNext = document.getElementById('btn-next-level');
+            const btnRetry = document.getElementById('btn-retry-level');
+            const btnDownload = document.getElementById('btn-download-pdf');
+            const btnLogin = document.getElementById('btn-back-login');
+            const titleEl = document.getElementById('recap-title');
+            const finalCongratsEl = document.getElementById('recap-final-congrats');
+            
+            let maxAllowedWrong = (currentLevel === 1 || currentLevel === 2) ? 2 : 1;
+            let minCorrectRequired = totalQ - maxAllowedWrong;
+            
+            document.getElementById('recap-req-text').innerText = `(Syarat lulus Level ${currentLevel}: Minimal benar ${minCorrectRequired} dari ${totalQ} soal)`;
+
+            btnNext.classList.add('hidden');
+            if (btnRetry) btnRetry.classList.add('hidden');
+            if (btnDownload) btnDownload.classList.add('hidden');
+            if (finalCongratsEl) finalCongratsEl.classList.add('hidden');
+            // Sembunyikan tombol kembali ke menu utama secara default
+            if (btnLogin) btnLogin.classList.add('hidden');
+
+            if (correctAnswersCount >= minCorrectRequired) {
+                statusEl.innerText = "LULUS";
+                statusEl.className = "font-bold text-emerald-400";
+                
+                if (currentLevel < 4) {
+                    btnNext.classList.remove('hidden');
+                } else {
+                    titleEl.innerText = "MENARA BERHASIL DIHANCURKAN";
+                    titleEl.className = "text-2xl md:text-4xl font-black text-cyan-400 mb-6 drop-shadow-[0_0_15px_rgba(6,182,212,0.8)] tracking-wide";
+                    if (btnDownload) btnDownload.classList.remove('hidden');
+                    // Munculkan tombol Menu Utama HANYA saat lulus Level 4
+                    if (btnLogin) btnLogin.classList.remove('hidden');
+                    if (finalCongratsEl) {
+                        finalCongratsEl.innerHTML = "Selamat atas keberhasilanmu! Seluruh kuis telah selesai kamu kerjakan dengan sangat baik.<br><br>⚠️ <strong>Pengingat Penting:</strong> Jangan lupa untuk segera mengunduh dan mengirimkan file PDF hasil skormu kepada guru agar nilaimu bisa langsung didata.";
+                        finalCongratsEl.classList.remove('hidden');
+                    }
+                }
+
+                // Tampilkan tombol "Perbaiki Skor" khusus untuk yang lulus tapi nilai < 80
+                // atau jika total skor tertinggi yang tersimpan (prevBest) masih < 80
+                let bestKnownScore = Math.max(finalLvlScore, prevBest);
+                if (bestKnownScore <= 79 && btnRetry) {
+                    btnRetry.classList.remove('hidden');
+                    btnRetry.innerHTML = '<i class="fa-solid fa-arrow-rotate-right mr-2"></i> Perbaiki Skor';
+                }
+
+            } else {
+                statusEl.innerText = `GAGAL (Hanya benar ${correctAnswersCount} dari batas min. ${minCorrectRequired} soal)`;
+                statusEl.className = "font-bold text-red-500";
+                
+                // JIKA GAGAL: Hanya tampilkan tombol Ulangi (Tombol Lanjut, Unduh & Menu Utama disembunyikan)
+                if (btnRetry) {
+                    btnRetry.classList.remove('hidden');
+                    btnRetry.innerHTML = '<i class="fa-solid fa-arrow-rotate-right mr-2"></i> Ulangi Level Ini';
+                }
+            }
+        }
+
+        function nextLevel() {
+            document.getElementById('level-recap').classList.add('hidden');
+            if (currentLevel < 4) {
+                startLevel(currentLevel + 1);
+            }
+        }
+
+        function restartLevel() {
+            // Sembunyikan UI popup yang mungkin terbuka
+            document.getElementById('level-recap').classList.add('hidden');
+            document.getElementById('game-over').classList.add('hidden');
+            document.getElementById('msg-modal').classList.add('hidden');
+            document.getElementById('quiz-ui').classList.add('hidden');
+            
+            // PENTING: Jangan lagi mereset levelScoresHistory[currentLevel] di sini!
+            // Sistem kini mempertahankan nilai histori demi fitur "Highest Score Retention"
+            
+            // Mengulang level yang sama
+            startLevel(currentLevel);
+        }
+
+        function confirmReturnToLogin() {
+            // Popup peringatan yang bisa di cancel (memiliki tombol X dan BATAL)
+            showWarningModal(
+                "KEMBALI KE LOGIN?", 
+                "Apakah Anda yakin ingin keluar ke halaman login?\n\nPERINGATAN: Semua progres permainan akan dihapus dan Anda harus mengulang dari awal (Level 1).", 
+                () => {
+                    returnToLogin(); // Eksekusi jika menekan Ya
+                },
+                true // isCancellable = true
+            );
+        }
+
+        function returnToLogin() {
+            document.getElementById('level-recap').classList.add('hidden');
+            document.getElementById('quiz-ui').classList.add('hidden');
+            document.getElementById('gift-modal').classList.add('hidden');
+            document.getElementById('game-over').classList.add('hidden');
+            document.getElementById('msg-modal').classList.add('hidden');
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('login-screen').classList.remove('hidden');
+            
+            const selectEl = document.getElementById('player-name');
+            if (selectEl) selectEl.selectedIndex = 0;
+            
+            gameState = "LOGIN";
+            currentLevel = 1;
+            correctAnswersCount = 0;
+            incorrectAnswersCount = 0;
+            lives = 3;
+            cheatCount = 0;
+            
+            // Jika benar-benar kembali ke login, maka total skor dihapus sepenuhnya
+            levelScoresHistory = { 
+                1: null, 
+                2: null, 
+                3: null, 
+                4: null 
+            };
+        }
+
+        function gameOver(reasonText) {
+            gameState = "GAME_OVER";
+            document.getElementById('go-reason').innerText = reasonText;
+            document.getElementById('game-over').classList.remove('hidden');
+            document.getElementById('game-over').style.display = "flex";
+        }
+
+        function exportPDF() {
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                let studentName = playerData.name || "Siswa (Belum Login)";
+                const dateStr = new Date().toLocaleString('id-ID');
+                
+                doc.setFillColor(15, 23, 42);
+                doc.rect(0, 0, 210, 40, "F");
+                
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(16);
+                doc.setTextColor(255, 255, 255);
+                doc.text("REKAPITULASI HASIL BELAJAR: EQUATIONS JUMP", 105, 18, { align: "center" });
+                
+                doc.setFontSize(10);
+                doc.setTextColor(148, 163, 184);
+                doc.text("Game Edukasi Matematika SMA Kelas X - Labyrinth Tower", 105, 27, { align: "center" });
+                
+                doc.setFillColor(241, 245, 249);
+                doc.roundedRect(15, 48, 180, 20, 3, 3, "F");
+                
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(10);
+                doc.setTextColor(30, 41, 59);
+                doc.text(`Nama Siswa : ${studentName}`, 22, 60);
+                doc.text(`Tanggal       : ${dateStr}`, 120, 60);
+                
+                let startY = 78;
+                doc.setFillColor(6, 182, 212);
+                doc.roundedRect(15, startY, 180, 10, 2, 2, "F");
+                
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(10);
+                doc.setTextColor(255, 255, 255);
+                doc.text("Level Menara", 25, startY + 7);
+                doc.text("Soal Benar", 75, startY + 7);
+                doc.text("Soal Salah", 115, startY + 7);
+                doc.text("Skor Diperoleh", 155, startY + 7);
+                
+                let grandTotalScore = 0;
+                let currentY = startY + 10;
+                
+                doc.setFont("helvetica", "normal");
+                doc.setTextColor(30, 41, 59);
+                
+                for (let lvl = 1; lvl <= 4; lvl++) {
+                    let lvlData = levelScoresHistory[lvl] || {score: 0, correct: 0, incorrect: 0};
+                    grandTotalScore += lvlData.score;
+                    let qCount = levelData[lvl].questions.length;
+                    
+                    if (lvl % 2 === 0) {
+                        doc.setFillColor(248, 250, 252);
+                        doc.rect(15, currentY, 180, 10, "F");
+                    }
+                    
+                    doc.text(`Level ${lvl}`, 25, currentY + 7);
+                    doc.text(`${lvlData.correct} / ${qCount}`, 78, currentY + 7);
+                    doc.text(`${lvlData.incorrect}`, 118, currentY + 7);
+                    doc.text(`${lvlData.score} / 100`, 155, currentY + 7);
+                    
+                    doc.setLineWidth(0.1);
+                    doc.setDrawColor(226, 232, 240);
+                    doc.line(15, currentY + 10, 195, currentY + 10);
+                    currentY += 10;
+                }
+                
+                let avgScore = (grandTotalScore / 4).toFixed(1);
+                
+                currentY += 8;
+                doc.setFillColor(238, 242, 255);
+                doc.roundedRect(15, currentY, 180, 16, 2, 2, "F");
+                
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(10);
+                doc.setTextColor(30, 41, 59);
+                doc.text(`Total Skor Keseluruhan: ${grandTotalScore} / 400`, 22, currentY + 11);
+                doc.text(`Rata-rata Skor: ${avgScore} / 100`, 125, currentY + 11);
+                
+                let sigY = currentY + 32;
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
+                doc.setTextColor(71, 85, 105);
+                doc.text("Mengetahui,", 135, sigY);
+                doc.text("Guru Mata Pelajaran Matematika,", 120, sigY + 6);
+                
+                doc.setFont("helvetica", "bold");
+                doc.setTextColor(15, 23, 42);
+                doc.text("Vyke Triawilly Pradista, S.Pd.", 120, sigY + 32);
+                
+                doc.setLineWidth(0.5);
+                doc.setDrawColor(100, 100, 100);
+                doc.line(120, sigY + 27, 185, sigY + 27);
+                
+                doc.setFontSize(8);
+                doc.setTextColor(150, 150, 150);
+                doc.text("Dokumen resmi ini dihasilkan secara otomatis oleh sistem Equations Jump", 105, 285, { align: "center" });
+                
+                doc.save(`Rekap_Nilai_${studentName.replace(/\s+/g, '_')}.pdf`);
+            } catch (err) {
+                alert("Gagal mencetak PDF. Pastikan browser mendukung ekspor PDF.");
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+</html>
